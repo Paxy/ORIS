@@ -1,0 +1,80 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="//unpkg.com/vue@latest/dist/vue.min.js"></script>
+<script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+
+var tak=7;
+var start="10:00:00";
+
+var table = new Vue({
+  el: '#dynamic',
+  data: {
+    users: [],
+    last:0
+  }
+})
+ 
+var snd = new Audio("beep.wav"); // buffers automatically when created
+
+
+$('button').click(_ =>
+  $.getJSON('https://oris.orijentiring.rs/srr/getData.php?tak='+tak+'&last='+table.$data.last+'&start='+start)
+   .done(function( data ) {
+       var usr=[];      
+      $.each( data, function( i, item ) {
+       usr.push(item); 
+       if(i==0) {
+            table.$data.last=item["si"];
+            snd.play();
+            }
+      });
+      $.each( table.$data.users, function( i, item ) {
+       usr.push(item); 
+      });
+       table.$data.users=usr;
+      })
+)});
+
+setInterval(function(){ 
+   $("button").click();
+},2000);
+
+
+</script>
+<style>
+#dynamic {
+  border-collapse: collapse;
+  text-align: center;
+}
+#dynamic th, #dynamic td {
+  border: 1px solid black;
+}
+
+</style>
+
+<button style="display: none;">Reload</button>
+
+<table id="dynamic" border=0 cellspacing=0 align=center width=830 >
+  <thead>
+    <tr>
+      <th>Vreme</th>
+      <th>SI</th>
+      <th>Ime</th>
+      <th>Prezime</th>
+      <th>Kategorija</th>
+      <th>Klub</th>
+      <th>Start</th>
+      <th>Prolazno vreme</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr v-for="row in users" v-bind:class="{'success': (users.si == last)}">
+      <td v-for="column in row">{{ column }}</td>
+    </tr>
+  </tbody>
+</table>
+<br><br>
+<a href=srr/getData.php?reload>Reload baze</a>
+

@@ -1,0 +1,1 @@
+insert into bodovanje(takmicar) select distinct idSavez from takmicari
