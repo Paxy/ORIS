@@ -1,9 +1,9 @@
 <?php
 //error_reporting(E_ERROR | E_PARSE);
-$dbserver='db11.cpanelhosting.rs';
-$dbuser='oss_oris';
-$dbpass='GHKaQx32XKa7';
-$dbname='oss_oris';
+$dbserver='***';
+$dbuser='***';
+$dbpass='*';
+$dbname='*';
 
 
 function mysqlConnect()
