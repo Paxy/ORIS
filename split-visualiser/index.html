@@ -1,0 +1,334 @@
+<script src="jquery-1.10.2.js"></script>
+<link rel="stylesheet" href="upload/style.css"/>
+<div style="
+    float: left;
+">
+	 <canvas id="canvas" width=1200 height=768 ></canvas>
+	
+</div>
+<div>
+
+	<div>
+		Class <select name=class id=class></select>
+	</div>
+	<br>
+	<div>
+		Speed <input type="button" value="+" id=speedup><input type="button" value="-" id=speeddown> <input type="button" value="Pause" id=pause> <input type="checkbox" id=dynamic name="dynamic" value="1">Dynamic speed 
+	</div><br>
+	<div>
+		Map <input type="button" value="Toggle" id=togglemap>
+	</div><br>
+	<div>
+		Timer <input type=text disabled size=1 id=tm><input type="button" value="+" id=inct><input type="button" value="-" id=dect> <input type="checkbox" id=timeron name="timeron" value="1">On
+	</div><br>
+	<div>
+		Courses <input type="checkbox" id=courses name="courses" value="0">
+	</div>
+</div>
+
+<script>
+	var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+
+// set starting values
+var xoffset=100;
+var yoffset=500;	
+	
+var fps = 30;
+var pause=false;
+var map=true;	
+var percent={};
+var kontrola={};
+var steps={};
+var controls={};
+var colors={0:"red",1:"green",2:"blue",3:"navy",4:"orange",5:"gray",6:"pink",7:"gold",8:"black",9:"lime",10:"brown",11:"olive",12:"aqua",13:"fuchsia",14:"teal",15:"maroon",16:"salmon",17:"silver"};
+var competitors={};
+var currentclass;	
+var course=false;
+
+var br_kontrola=4;
+var br_takmicara=3;
+	
+var next=15;
+
+var timer;
+var rtimer;
+	
+var refcomp;	
+//initvar();
+
+// start the animation
+//move();
+
+ if(map){
+                $("#canvas").addClass( "map" );
+
+        }
+
+
+function initvar(){
+	 for (i = 0; i < br_takmicara; i++) { 
+   		percent[i]=0;
+      kontrola[i]=0;
+   }
+	clearTimeout(timer);
+}
+
+function move() {
+
+	if (!pause) 
+	{
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+		drawPath(); 
+    
+    for (i = 0; i < br_takmicara; i++) { 
+    
+    var step=100/steps[i][kontrola[i]+1];
+    percent[i] += step;
+    draw(i,kontrola[i],percent[i]/100);
+    
+    if (percent[i] >= 100 && kontrola[i] < br_kontrola-1){
+    	kontrola[i]++;
+      percent[i]=0;
+		if(i==br_takmicara-1 && kontrola[i]==br_kontrola-1)
+					updateData("NEXT~"+currentclass);
+    }
+    
+		}
+	}
+    // request another frame
+    timer=setTimeout(function () {
+        requestAnimationFrame(move);
+    }, 1000 / fps);
+}
+
+function drawPath()
+{
+		var color="purple";
+    var radius=15;
+	
+	ctx.beginPath();
+	ctx.font = 'bold 30pt Calibri';
+    ctx.fillStyle = 'purple';
+	ctx.fillText(currentclass,xoffset, yoffset+30);
+	ctx.stroke();
+	
+    ctx.lineWidth = 5;
+
+	ctx.beginPath();
+    ctx.arc(controls[0]["x"],controls[0]["y"],radius,0,2*Math.PI);
+    ctx.strokeStyle = color;
+	ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    var side=radius*8/5;
+    var height = side * (Math.sqrt(3)/2);
+    var X=controls[0]["x"];
+    var Y=controls[0]["y"]-radius+1;
+    ctx.moveTo(X, Y);
+		ctx.lineTo(X+side/2, Y+height);
+		ctx.lineTo(X-side/2, Y+height);
+		ctx.lineTo(X, Y);
+		ctx.stroke();
+	
+  	for (var i=1;i<br_kontrola+1;i++)
+    {
+  	var angleDeg = Math.atan2(controls[i]["y"] - controls[i-1]["y"], controls[i]["x"] - controls[i-1]["x"]);
+		var mx = radius*Math.cos(angleDeg);
+    var my = radius*Math.sin(angleDeg);
+
+    ctx.beginPath();
+    ctx.moveTo(controls[i-1]["x"]+mx, controls[i-1]["y"]+my);
+    ctx.lineTo(controls[i]["x"]-mx, controls[i]["y"]-my);
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(controls[i]["x"],controls[i]["y"],radius,0,2*Math.PI);
+	ctx.font = '20pt Calibri';
+    ctx.fillStyle = 'purple';
+	ctx.fillText(i,controls[i]["x"]-8, controls[i]["y"]-20);
+    ctx.strokeStyle = color;
+    ctx.stroke();
+     }
+  
+    ctx.beginPath();
+    ctx.arc(controls[br_kontrola]["x"],controls[br_kontrola]["y"],radius/2,0,2*Math.PI);
+    ctx.strokeStyle = color;
+    ctx.stroke();
+
+	for (i = 0; i < br_takmicara; i++) { 
+		ctx.beginPath();
+		ctx.font = '15pt Calibri';
+    	ctx.fillStyle = 'black';
+		ctx.fillText(competitors[i].name,xoffset, yoffset + 50+i*20);
+		ctx.fillText(competitors[i].time,xoffset-90, yoffset+ 50+i*20);
+		ctx.fillText((i+1)+".",xoffset-130, yoffset + 50+i*20);
+		ctx.stroke();
+		drawDot({x:xoffset-15,y:yoffset+44+i*20},colors[i],"");
+	}
+	
+	
+}
+
+function draw(dot,kontrola,percent) {
+
+    var xy;
+	  xy = getLineXYatPercent(controls[kontrola], controls[kontrola+1], percent);
+    drawDot(xy, colors[dot],competitors[dot].init);
+    
+}
+
+// draw tracking dot at xy
+function drawDot(point, color,text) {
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 8, 0, Math.PI * 2, false);
+	if(text==null || text.length>1)
+	{
+	ctx.font = 'bold 12pt Calibri';
+    ctx.fillText(text,point.x-10, point.y-12);
+	}
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+}
+
+
+
+// line: percent is 0-1
+function getLineXYatPercent(startPt, endPt, percent) {
+    var dx = endPt.x - startPt.x;
+    var dy = endPt.y - startPt.y;
+    var X = startPt.x + dx * percent;
+    var Y = startPt.y + dy * percent;
+    return ({
+        x: X,
+        y: Y
+    });
+}
+
+function updateData(classa)	{
+	course=$('#courses').is(':checked');
+		updateClass();
+		$.ajax({
+            type: 'send',
+            url: 'getSVData.php?getdata&class='+classa+'&course='+course,
+            data: {},
+            success: function (data) {
+				var data = jQuery.parseJSON(data);
+				controls=data.course;
+				steps=data.splits;
+				competitors=data.competitors;
+				br_kontrola=controls.length-1;
+				br_takmicara=competitors.length;
+				currentclass=data.class;
+				
+				$("#class").val(currentclass);
+				
+				var ref=0;
+				
+				var tak=steps[br_takmicara-1];
+				for (var i=1;i<br_kontrola+1;i++)
+					ref+=tak[i];
+	
+				refcomp=ref;
+				
+				clearTimeout(rtimer);
+				if ($('#timeron').is(':checked'))
+				{
+					rtimer=setTimeout(function () {
+        			updateData("NEXT~"+currentclass);
+   				 	}, 1000*next);
+				}
+				
+				recalcFPS();
+				
+				initvar();
+				move();
+			
+			
+			}
+		 });
+		
+}
+	
+function recalcFPS()
+{
+	if ($('#dynamic').is(':checked'))
+		fps=Math.floor(refcomp/next);	
+}
+	
+function updateClass(){
+		$.ajax({
+            type: 'send',
+            url: 'getSVData.php?getclasses&course='+course,
+            data: '',
+            success: function (data) {
+				var obj = jQuery.parseJSON(data);
+				 $("#class").empty();
+				 $.each(obj,function(obj){
+				  	 $("#class").append('<option>'+this+'</option>');
+				});}
+		 });
+	}
+	
+$(function() {
+	updateData("NEXT~NEXT");
+	
+$("#tm").val(next);	
+	
+$( "#speedup" ).click( function( event) {
+	fps=fps+2;
+	clearTimeout(rtimer);
+    } );
+$( "#speeddown" ).click( function( event) {
+	fps=fps-2;
+	clearTimeout(rtimer);
+    } );
+$( "#pause" ).click( function( event) {
+	if(pause)pause=false;
+	else pause=true;
+	clearTimeout(rtimer);
+    } );
+
+$( "#togglemap" ).click( function( event) {
+	if(map){
+		map=false;
+		$("#canvas").removeClass( "map" )
+	}
+	else {
+		map=true;
+		$("#canvas").addClass( "map" );
+
+	}
+    } );
+	
+	
+$('#class').change(function() {  
+		var val=this.value;
+         updateData(val);
+    });
+	
+$('#courses').change(function() {  
+		var val=this.value;
+         updateData("NEXT~NEXT");
+    });
+	
+$( "#inct" ).click( function( event) {
+	next++;
+	$("#tm").val(next);	
+	recalcFPS();
+    } );
+$( "#dect" ).click( function( event) {
+	next--;
+	$("#tm").val(next);	
+	recalcFPS();
+    } );
+	
+});
+	
+
+</script>

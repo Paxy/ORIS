@@ -1,0 +1,15 @@
+   body {
+        background-color: ivory;
+    }
+    canvas {
+        border:1px solid red;
+    }
+
+
+.map{
+    background-image: url('mapa.jpg');
+    background-repeat: no-repeat;
+    /* background-size: 793px 963px; */
+background-position: -98px -111px;
+}
+
